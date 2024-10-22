@@ -1,16 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
+const auth = require('../middleware/auth');
 
 //Create new blog post
-router.post('/posts', async (req, res) =>{
-    try{
-        const post = new Post(req.body);
-        await post.save();
-        res.status(201).send(post);
-    } catch (error) {
+router.post('/posts', auth, async (req, res) =>{
+    try {
+        const { title, content } = req.body;
+        const newPost = new Post({
+          title,
+          content,
+          author: req.user, // User ID from the token
+        });
+        await newPost.save();
+        res.status(201).json(newPost);
+      } catch (error) {
+        console.error(error);
         res.status(400).send(error);
-    }
+      }
 });
 
 //Get all blog posts

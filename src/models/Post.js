@@ -10,7 +10,8 @@ const postSchema = new mongoose.Schema({
         required: true
     },
     author: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     createdAt: {
@@ -20,8 +21,9 @@ const postSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
-    }
-});
+    },
+}, { timestamps: true }
+);
 
 const Post = mongoose.model('Post', postSchema);
 module.exports = Post;
