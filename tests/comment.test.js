@@ -4,8 +4,7 @@ const mongoose = require('mongoose');
 const Post = require('../src/models/Post');
 const User= require('../src/models/User');
 const Comment = require('../src/models/Comment');
-const jwt = require('jsonwebtoken')
-
+const jwt = require('jsonwebtoken');
 
 let token, post, user;
 
@@ -26,6 +25,7 @@ afterEach(async () => {
 });
 
 describe('Comments Feature', () => {
+
     it('should add a comment to a specific post', async () => {
         const res = await request(app)
             .post(`/api/posts/${post._id}/comments`)

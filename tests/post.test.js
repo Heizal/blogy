@@ -6,13 +6,15 @@ const User = require('../src/models/User');
 const jwt = require('jsonwebtoken');
 
 let token;
+let userId; // Variable to hold user ID
+let postId; // Variable to hold the post ID
 
 beforeAll(async () => {
     await mongoose.connect(process.env.MONGODB_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
     });
-    await User.deleteMany({}); 
+    await User.deleteMany({});
     await Post.deleteMany({});
 
     // Create a user and generate a token
@@ -22,15 +24,18 @@ beforeAll(async () => {
         password: 'password123' 
     });
     await user.save();
-    token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET || 'defaultSecretKey', { expiresIn: '1h' });
+    
+    userId = user._id; // Store user ID for later use
+    token = jwt.sign({ userId }, process.env.JWT_SECRET || 'defaultSecretKey', { expiresIn: '1h' });
 
-     // Create a new blog post
+    // Create a new blog post and store its ID
     const post = new Post({
         title: 'Sample Post',
         content: 'This is a sample blog post.',
-        author: new mongoose.Types.ObjectId() // Use the valid user ID
+        author: userId // Use the valid user ID
     });
-    await post.save();
+    const savedPost = await post.save();
+    postId = savedPost._id; // Store the post ID
 });
 
 afterAll(async () => {
@@ -40,23 +45,13 @@ afterAll(async () => {
 
 describe('CRUD Operations for Blog Posts', () => {
     it('should create a new blog post', async () => {
-        //Autheticate first
-        const user = new User({ 
-            username: `Heizal_${Date.now()}`, 
-            email: 'heizal@example.com', 
-            password: 'password123' 
-        });
-        await user.save();
-
-        token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET || 'defaultSecretKey', { expiresIn: '1h' });
-
         const res = await request(app)
             .post('/api/posts')
             .set('Authorization', `Bearer ${token}`) // Set the token in the request header
             .send({
                 title: 'New Post',
                 content: 'This is a test post',
-                author: user._id, // Use a valid object ID
+                author: userId // Use the valid user ID from the previous user creation
             });
         expect(res.statusCode).toBe(201);
         expect(res.body.title).toBe('New Post');
@@ -69,20 +64,14 @@ describe('CRUD Operations for Blog Posts', () => {
     });
 
     it('should get a blog post by id', async () => {
-        const post = new Post({ title: 'Test Post', content: 'Test content', author: new mongoose.Types.ObjectId() });
-        await post.save();
-
-        const res = await request(app).get(`/api/posts/${post._id}`);
+        const res = await request(app).get(`/api/posts/${postId}`); // Use the postId from beforeAll
         expect(res.statusCode).toBe(200);
-        expect(res.body.title).toBe('Test Post');
+        expect(res.body.title).toBe('Sample Post');
     });
 
     it('should update a blog post', async () => {
-        const post = new Post({ title: 'Old Title', content: 'Old content', author: new mongoose.Types.ObjectId() });
-        await post.save();
-
         const res = await request(app)
-            .put(`/api/posts/${post._id}`)
+            .put(`/api/posts/${postId}`) // Use the postId from beforeAll
             .set('Authorization', `Bearer ${token}`) // Set the token in the request header
             .send({
                 title: 'Updated Title',
@@ -94,14 +83,10 @@ describe('CRUD Operations for Blog Posts', () => {
     });
 
     it('should delete a blog post', async () => {
-        const post = new Post({ title: 'Delete Me', content: 'This will be deleted', author: new mongoose.Types.ObjectId() });
-        await post.save();
-
         const res = await request(app)
-            .delete(`/api/posts/${post._id}`)
+            .delete(`/api/posts/${postId}`) // Use the postId from beforeAll
             .set('Authorization', `Bearer ${token}`); // Set the token in the request header
 
         expect(res.statusCode).toBe(200);
     });
 });
-
